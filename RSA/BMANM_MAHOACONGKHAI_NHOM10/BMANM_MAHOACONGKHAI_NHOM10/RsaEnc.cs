@@ -18,7 +18,7 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
         public RsaEnc()
         {            
             Random rd = new Random();
-            sobit = Math.Abs(2048);
+            sobit = Math.Abs(8*rd.Next(48,2048));
             rsa = new RSACryptoServiceProvider(sobit);            
             privatekey = rsa.ExportParameters(true);
             publickey = rsa.ExportParameters(false);            
