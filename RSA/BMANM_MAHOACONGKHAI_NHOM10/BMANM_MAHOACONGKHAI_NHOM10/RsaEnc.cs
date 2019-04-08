@@ -37,30 +37,49 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
             xs.Serialize(sw, privatekey);
             return sw.ToString();
         }
-        public string Encrypt(string plainText)
+        public string Encrypt(string plainText, string pubkeyPath)
         {
             rsa = new RSACryptoServiceProvider();
-            string keyfromfile = LoadKeyFromFile("publickey.txt");
-            if (keyfromfile != null)
+            if (pubkeyPath == "")
             {
-                rsa.FromXmlString(keyfromfile);
+                rsa.ImportParameters(publickey);
             }
             else
-                rsa.ImportParameters(publickey);            
+            {
+                string keyfromfile = LoadKeyFromFile(pubkeyPath);
+                try
+                {
+                    rsa.FromXmlString(keyfromfile);
+                }
+                catch (Exception e)
+                {
+                    return e.Message;
+                }
+            }                                    
             var data = Encoding.Unicode.GetBytes(plainText);
             var cypher = rsa.Encrypt(data,false);
             return Convert.ToBase64String(cypher);
         }
-        public string Decrypt(string cypherText)
+        public string Decrypt(string cypherText, string prikeyPath)
         {
             var databytes = Convert.FromBase64String(cypherText);
-            string keyfromfile = LoadKeyFromFile("privatekey.txt");
-            if (keyfromfile != null)
+            if (prikeyPath == "")
             {
-                rsa.FromXmlString(keyfromfile);
+                rsa.ImportParameters(privatekey);
             }
             else
-                rsa.ImportParameters(privatekey);
+            {
+                try
+                {
+                    string keyfromfile = LoadKeyFromFile(prikeyPath);
+                    rsa.FromXmlString(keyfromfile);
+                }
+                catch (Exception e)
+                {
+                    return e.Message;
+                }
+            }            
+                
             var plain = rsa.Decrypt(databytes,false);
             return Encoding.Unicode.GetString(plain);
         }

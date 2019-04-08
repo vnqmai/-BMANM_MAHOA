@@ -17,16 +17,14 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
         private static RsaEnc rsa = new RsaEnc();
         private int numberToCompute = 0;
         private int highestPercentageReached = 0;
-
+        private bool isGenerated = false;
         public Form1()
         {
             InitializeComponent();
             InitializeBackgroundWorker();
 
-            txtPublickey.ReadOnly = true;
-            txtPublickey.Text = rsa.LoadKeyFromFile("publickey.txt");
-            txtPrivatekey.ReadOnly = true;
-            txtPrivatekey.Text = rsa.LoadKeyFromFile("privatekey.txt");
+            txtPublickey.ReadOnly = true;            
+            txtPrivatekey.ReadOnly = true;            
             txtEncryptedFileName.Enabled = false;
             txtDecryptedFileName.Enabled = false;
             btnSavePri.Enabled = false;
@@ -40,7 +38,16 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
             rtxtEncryptedFile.BackColor = System.Drawing.Color.White;            
             rtxtEncryptedFile.ReadOnly = true;
 
-            
+            if(rbtnUseGenPubkey.Checked == true)
+            {
+                btnChoosePubkeyFile.Enabled = false;
+                txtPubkeyFileName.Enabled = false;
+            }
+            if (rbtnUseGenPrikey.Checked == true)
+            {
+                btnChoosePrikeyFile.Enabled = false;
+                txtPrikeyFileName.Enabled = false;
+            }
         }
 
         private void InitializeBackgroundWorker()
@@ -64,7 +71,7 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
                 rtxtEncryptedFile.BackColor = System.Drawing.Color.LightPink;
                 rtxtDecryptedFile.BackColor = System.Drawing.Color.White;
                 rtxtDecryptedFile.Clear();
-                txtDecryptedFileName.Clear();
+                txtDecryptedFileName.Text = "Choose file need to be decrypted...";
             }
         }
 
@@ -78,52 +85,81 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
                 rtxtDecryptedFile.BackColor = System.Drawing.Color.LightPink;
                 rtxtEncryptedFile.BackColor = System.Drawing.Color.White;
                 rtxtEncryptedFile.Clear();
-                txtEncryptedFileName.Clear();
+                txtEncryptedFileName.Text = "Choose file need to be encrypted...";
             }
         }
 
         private void btnGenerate_Click(object sender, EventArgs e)
-        {
-
+        {            
             numberToCompute = rsa.sobit;
             highestPercentageReached = 0;
             backgroundWorker1.RunWorkerAsync(numberToCompute);            
 
             btnSavePub.Enabled = true;
             btnSavePri.Enabled = true;
+
+            isGenerated = true;
         }
 
         private void btnSavePub_Click(object sender, EventArgs e)
         {
-            FileStream fs = new FileStream("publickey.txt",FileMode.Create);
-            StreamWriter swriter = new StreamWriter(fs);
-            //swriter.Write(txtPublickey.Text);
-            swriter.Write(rsa.PublickeyString());
-            swriter.Flush();
-            fs.Close();
-            MessageBox.Show("Save public key successfully!","Information",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            DialogResult res = folderSavePubkey.ShowDialog();
+            if (res == DialogResult.OK)
+            {
+                string folderPath = folderSavePubkey.SelectedPath;
+
+                FileStream fs = new FileStream(folderPath+"\\publickey.txt", FileMode.Create);                
+                StreamWriter swriter = new StreamWriter(fs);
+                //swriter.Write(txtPublickey.Text);
+                swriter.Write(rsa.PublickeyString());
+                swriter.Flush();
+                fs.Close();
+
+                MessageBox.Show("Save public key successfully!", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }            
         }
 
         private void btnSavePri_Click(object sender, EventArgs e)
         {
-            FileStream fs = new FileStream("privatekey.txt", FileMode.Create);
-            StreamWriter swriter = new StreamWriter(fs);
-            //swriter.Write(txtPrivatekey.Text);
-            swriter.Write(rsa.PrivatekeyString());
-            swriter.Flush();
-            fs.Close();
-            MessageBox.Show("Save private key successfully!", "Information", MessageBoxButtons.OK,MessageBoxIcon.Information);
+            DialogResult res = folderSavePrikey.ShowDialog();
+            if(res == DialogResult.OK)
+            {
+                string folderPath = folderSavePrikey.SelectedPath;
+
+                FileStream fs = new FileStream(folderPath+"\\privatekey.txt", FileMode.Create);
+                StreamWriter swriter = new StreamWriter(fs);
+                //swriter.Write(txtPrivatekey.Text);
+                swriter.Write(rsa.PrivatekeyString());
+                swriter.Flush();
+                fs.Close();
+
+                MessageBox.Show("Save private key successfully!", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }            
         }
-        private int getMaxBlockSize(int keySize)
-        {
-            int max = ((int)(keySize / 8 / 3)) * 4;            
-            if ((keySize/8)% 3!= 0){
-                max += 4;
-            }
-            return max;
-        }
+
         private void btnDecryptPri_Click(object sender, EventArgs e)
         {
+            if (rbtnUseGenPrikey.Checked == true)
+            {
+                if (isGenerated == false)
+                {
+                    MessageBox.Show("Please generate RSA public/private keys first!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+            else if (rbtnUsePrikeyFile.Checked == true)
+            {
+                if (txtPrikeyFileName.Text == "Choose private key file...")
+                {
+                    MessageBox.Show("Please choose private key file!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }                
+            }
+            if (txtDecryptedFileName.Text == "Choose file need to be decrypted...")
+            {
+                MessageBox.Show("Please choose file need to be decrypted!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             try
             {
                 FileStream fs = new FileStream("privatekey.txt", FileMode.Open);
@@ -131,7 +167,12 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
                 string prikey = sreader.ReadLine();
                 fs.Close();
 
-                string decrypted = rsa.Decrypt(rtxtDecryptedFile.Text);
+                string decrypted = "";
+                if (rbtnUseGenPrikey.Checked == true)
+                    decrypted = rsa.Decrypt(rtxtDecryptedFile.Text,"");
+                else if (rbtnUsePrikeyFile.Checked == true)
+                    decrypted = rsa.Decrypt(rtxtDecryptedFile.Text, txtPrikeyFileName.Text);
+
                 fs = new FileStream(txtDecryptedFileName.Text, FileMode.Create);
                 StreamWriter swriter = new StreamWriter(fs);
                 swriter.Write(decrypted.ToString());
@@ -151,6 +192,27 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
 
         private void btnEncryptPub_Click(object sender, EventArgs e)
         {
+            if (rbtnUseGenPubkey.Checked==true)
+            {
+                if (isGenerated == false)
+                {                    
+                    MessageBox.Show("Please generate RSA public/private keys first!","Warning",MessageBoxButtons.OK,MessageBoxIcon.Warning);
+                    return;
+                }                
+            }
+            else if (rbtnUsePubkeyFile.Checked==true)
+            {
+                if (txtPubkeyFileName.Text== "Choose public key file...")
+                {
+                    MessageBox.Show("Please choose public key file!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }                
+            }
+            if (txtEncryptedFileName.Text == "Choose file need to be encrypted...")
+            {
+                MessageBox.Show("Please choose file need to be encrypted!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             try
             {
                 FileStream fs = new FileStream("publickey.txt", FileMode.Open);
@@ -158,7 +220,11 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
                 string pubkey = sreader.ReadLine();
                 fs.Close();
 
-                string encrypted = rsa.Encrypt(rtxtEncryptedFile.Text);
+                string encrypted = "";
+                if (rbtnUseGenPubkey.Checked == true)
+                    encrypted = rsa.Encrypt(rtxtEncryptedFile.Text, "");
+                else if (rbtnUsePubkeyFile.Checked == true)
+                    encrypted = rsa.Encrypt(rtxtEncryptedFile.Text,txtPubkeyFileName.Text);
 
                 fs = new FileStream(txtEncryptedFileName.Text, FileMode.Create);
                 StreamWriter swriter = new StreamWriter(fs);
@@ -215,6 +281,60 @@ namespace BMANM_MAHOACONGKHAI_NHOM10
                 }
             }
 
+        }
+
+        private void rbtnUsePubkeyFile_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbtnUsePubkeyFile.Checked == true)
+            {
+                btnChoosePubkeyFile.Enabled = true;
+                txtPubkeyFileName.Enabled = false;
+            }
+        }
+
+        private void rbtnUsePrikeyFile_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbtnUsePrikeyFile.Checked == true)
+            {
+                btnChoosePrikeyFile.Enabled = true;
+                txtPrikeyFileName.Enabled = false;
+            }
+        }
+
+        private void rbtnUseGenPubkey_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbtnUseGenPubkey.Checked == true)
+            {
+                btnChoosePubkeyFile.Enabled = false;
+                txtPubkeyFileName.Enabled = false;
+            }            
+        }
+
+        private void rbtnUseGenPrikey_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbtnUseGenPrikey.Checked == true)
+            {
+                btnChoosePrikeyFile.Enabled = false;
+                txtPrikeyFileName.Enabled = false;
+            }
+        }
+
+        private void btnChoosePubkeyFile_Click(object sender, EventArgs e)
+        {
+            if (diagPubkeyFile.ShowDialog() == DialogResult.OK)
+            {
+                var filePath = diagPubkeyFile.FileName;
+                txtPubkeyFileName.Text = filePath;                
+            }
+        }
+
+        private void btnChoosePrikeyFile_Click(object sender, EventArgs e)
+        {
+            if (diagPrikeyFile.ShowDialog() == DialogResult.OK)
+            {
+                var filePath = diagPrikeyFile.FileName;
+                txtPrikeyFileName.Text = filePath;
+            }
         }
     }
 }
