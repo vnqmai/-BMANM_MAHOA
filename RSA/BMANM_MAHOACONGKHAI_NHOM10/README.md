@@ -1,5 +1,5 @@
 # What does this project do?
-  * Generate RSA keys pair
+  * Generate RSA keys pair (has blocksize which is a random number divisible by 8 and limited from 384 to 16384)
   * Save RSA keys pair to file
   * Load RSA keys pair from file
   * Encrypt file with public key (from generated key or key file)
